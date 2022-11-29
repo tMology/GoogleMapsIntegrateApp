@@ -7,6 +7,8 @@ package com.example.hw09;
  *
  * */
 
+//NOTE: The code base for the Map Fragment
+
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,6 +19,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 
 import com.example.hw09.databinding.FragmentMapsBinding;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -25,7 +28,10 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polygon;
+import com.google.android.gms.maps.model.PolygonOptions;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -38,6 +44,8 @@ import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+
+
 
 public class MapsFragment extends Fragment {
 
@@ -54,7 +62,7 @@ public class MapsFragment extends Fragment {
          */
         @Override
         public void onMapReady(GoogleMap googleMap) {
-            LatLng sydney = new LatLng(-34, 151);
+            LatLng sydney = new LatLng(35.2271, -80.8431);
             googleMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
             googleMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
         }
@@ -79,29 +87,46 @@ public class MapsFragment extends Fragment {
 
         client.newCall(request).enqueue(new Callback() {
             @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                e.printStackTrace();
+            }
+
+            @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if(response.isSuccessful()){
                     String body = response.body().string();
                     try {
+                        ArrayList<LatLng> pathArray = new ArrayList<>();
                         JSONObject jsonBody = new JSONObject(body);
 
+                        JSONArray path = jsonBody.getJSONArray("path");
+                        for (int i=0; i<100 ;i++) {
+                            JSONObject p = path.getJSONObject(i);
+                            String latitude = p.getString("latitude");
+                            String longitude = p.getString("longitude");
+                            pathArray.add(new LatLng(Double.parseDouble(latitude), Double.parseDouble(longitude)));
+                        }
 
-                    } catch (JSONException e) {
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                PolygonOptions polygonOptions = new PolygonOptions();
+                                for (LatLng l : pathArray) {
+                                    polygonOptions.add(l);
+                                }
+                                //Polygon polygon = googleMap.addPolygon(polygonOptions);
+                            }
+                        });
+
+
+                    }catch (JSONException e) {
                         e.printStackTrace();
                     }
                 }
 
 
-
             }
-
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                e.printStackTrace();
-            }
-
-
-
 
         });
 
@@ -110,25 +135,29 @@ public class MapsFragment extends Fragment {
         return binding.getRoot();
     }
 
+    //ArrayAdapter<LatLng> adapter;
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        SupportMapFragment mapFragment =
-                (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
-        if (mapFragment != null) {
-            mapFragment.getMapAsync(callback);
-        }
+
+//        //adapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_list_item_1, android.R.id.text1, LatLng.latLngs);
+//        SupportMapFragment mapFragment =
+//                (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
+//        if (mapFragment != null) {
+//            mapFragment.getMapAsync(callback);
+//        }
 
         //Call in the lat long in the MapFragment then use a draw the poly line Look into draw polyline and use http call for calling in the map
     }
 
-//    void drawPolyLine(ArrayList<LatLong.Path> pathList, GoogleMap googleMap){
+//    void drawPolyLine(ArrayList<LatLng.Path> pathList, GoogleMap googleMap){
 //
-//        for (LatLong.PATH: pathList) {
+//        for (LatLng.PATH: pathList) {
 //            Double latitude = Double.parseDouble(path.latitude);
 //            Double longitude = Double.parseDouble(path.longitude);
 //
 //
 //        }
-    //}
+//    }
 }
